@@ -56,148 +56,173 @@ class AssessmentService
         return $results;
     }
 
-    public function getProgressAndScore(AssessmentInstance $instance): array
-    {
-        $answers = $this->assessmentRepository->findAllAssessmentInstanceAnswers($instance);
-        $questions = $instance->getSession()->getAssessment()?->getQuestions()->toArray() ?? [];
-        $assessmentElement = $instance->getSession()->getAssessment()?->getElement();
+  public function getProgressAndScore(AssessmentInstance $instance): array
+{
+    if (!$instance->getId()) {
+        throw new \InvalidArgumentException('Invalid AssessmentInstance provided.');
+    }
 
-        $totalQuestions = count($questions);
+    $session = $instance->getSession();
+    if (!$session) {
+        throw new \RuntimeException('AssessmentInstance has no session.');
+    }
 
-        $answersByQuestion = [];
-        foreach ($answers as $answer) {
-            if ($answer->getAssessmentAnswerOption()) {
-                $question = $answer->getAssessmentAnswerOption()->getAssessmentQuestion();
-                $questionId = $question->getId();
+    $assessment = $session->getAssessment();
+    if (!$assessment) {
+        throw new \RuntimeException('Session has no assessment assigned.');
+    }
 
-                if (!isset($answersByQuestion[$questionId]) ||
-                    $answer->getCreatedAt() > $answersByQuestion[$questionId]->getCreatedAt()) {
-                    $answersByQuestion[$questionId] = $answer;
-                }
+    $answers = $this->assessmentRepository->findAllAssessmentInstanceAnswers($instance);
+    $questions = $assessment->getQuestions()->toArray();
+    $assessmentElement = $assessment->getElement();
+
+    $totalQuestions = count($questions);
+
+    $answersByQuestion = [];
+    foreach ($answers as $answer) {
+        if ($answer->getAssessmentAnswerOption()) {
+            $question = $answer->getAssessmentAnswerOption()->getAssessmentQuestion();
+            $questionId = $question->getId();
+
+            if (!isset($answersByQuestion[$questionId]) ||
+                $answer->getCreatedAt() > $answersByQuestion[$questionId]->getCreatedAt()) {
+                $answersByQuestion[$questionId] = $answer;
             }
         }
+    }
 
-        $totalScore = 0;
-        $maxScore = 0;
-        $questionAnswersData = [];
-        $elementScores = [];
+    $totalScore = 0;
+    $maxScore = 0;
+    $questionAnswersData = [];
+    $elementScores = [];
 
-        // Group questions by their element
-        $questionsByElement = [];
-        foreach ($questions as $question) {
-            $questionElement = $question->getElement();
-            if ($questionElement) {
-                if (!isset($questionsByElement[$questionElement])) {
-                    $questionsByElement[$questionElement] = [];
-                }
-                $questionsByElement[$questionElement][] = $question;
-            }
+    $questionsByElement = [];
+    foreach ($questions as $question) {
+        $questionElement = $question->getElement();
+        if ($questionElement) {
+            $questionsByElement[$questionElement][] = $question;
         }
+    }
 
-        // Calculate scores for each element
-        foreach ($questionsByElement as $element => $elementQuestions) {
-            $elementTotalScore = 0;
-            $elementMaxScore = 0;
-            $elementAnsweredQuestions = 0;
-            $elementQuestionAnswersData = [];
+    foreach ($questionsByElement as $element => $elementQuestions) {
+        $elementTotalScore = 0;
+        $elementMaxScore = 0;
+        $elementAnsweredQuestions = 0;
+        $elementQuestionAnswersData = [];
 
-            foreach ($elementQuestions as $question) {
-                $questionId = $question->getId();
-                $answer = $answersByQuestion[$questionId] ?? null;
+        foreach ($elementQuestions as $question) {
+            $questionId = $question->getId();
+            $answer = $answersByQuestion[$questionId] ?? null;
 
-                $options = $this->assessmentRepository->findAssessmentAnswerOptionsByQuestion($question);
-                $questionMaxScore = 0;
-                if (!empty($options)) {
-                    $questionMaxScore = max(array_map(fn($option) => $option->getValue(), $options));
-                    $elementMaxScore += $questionMaxScore;
-                    $maxScore += $questionMaxScore;
-                }
+            $options = $this->assessmentRepository->findAssessmentAnswerOptionsByQuestion($question);
+            $questionMaxScore = 0;
 
-                $questionData = [
-                    'question_id' => $questionId,
-                    'question_title' => $question->getTitle(),
-                    'question_suite' => $question->getQuestionSuite(),
-                    'question_sequence' => $question->getSequence(),
-                    'is_reflection' => $question->getIsReflection(),
-                    'reflection_prompt' => $question->getReflectionPrompt(),
-                    'element' => $question->getElement(),
-                    'max_score' => $questionMaxScore,
-                    'is_answered' => $answer !== null,
-                    'answer_id' => $answer?->getId(),
-                    'answer_value' => null,
-                    'answer_text' => null,
-                    'answer_option_id' => null,
-                    'text_answer' => $answer?->getTextAnswer(),
-                    'numeric_value' => $answer?->getNumericValue(),
-                ];
-
-                if ($answer && $answer->getAssessmentAnswerOption()) {
-                    $answerOption = $answer->getAssessmentAnswerOption();
-                    $questionData['answer_value'] = $answerOption->getValue();
-                    $questionData['answer_text'] = $answerOption->getAnswer();
-                    $questionData['answer_option_id'] = $answerOption->getId();
-                    $questionData['answer_explanation'] = $answerOption->getExplanation();
-                    $questionData['option_number'] = $answerOption->getOptionNumber();
-
-                    $elementTotalScore += $answerOption->getValue();
-                    $totalScore += $answerOption->getValue();
-                    $elementAnsweredQuestions++;
-                }
-
-                $elementQuestionAnswersData[] = $questionData;
-                $questionAnswersData[] = $questionData;
+            if (!empty($options)) {
+                $questionMaxScore = max(array_map(fn($option) => $option->getValue(), $options));
+                $elementMaxScore += $questionMaxScore;
+                $maxScore += $questionMaxScore;
             }
 
-            // Calculate element-specific scores
-            $elementCompletionPercentage = count($elementQuestions) > 0
-                ? round(($elementAnsweredQuestions / count($elementQuestions)) * 100, 2)
-                : 0;
-            // Normalize 1-5 scale to 0-100% scale
-            $normalizedElementScore = $elementAnsweredQuestions > 0 ? ($elementTotalScore - $elementAnsweredQuestions) : 0;
-            $normalizedElementMaxScore = $elementAnsweredQuestions > 0 ? ($elementMaxScore - $elementAnsweredQuestions) : 0;
-            $elementScorePercentage = $normalizedElementMaxScore > 0
-                ? round(($normalizedElementScore / $normalizedElementMaxScore) * 100, 2)
-                : 0;
-
-            $elementScores[$element] = [
-                'element' => $element,
-                'total_questions' => count($elementQuestions),
-                'answered_questions' => $elementAnsweredQuestions,
-                'completion_percentage' => min($elementCompletionPercentage, 100),
-                'scores' => [
-                    'total_score' => $elementTotalScore,
-                    'max_score' => $elementMaxScore,
-                    'percentage' => $elementScorePercentage,
-                ],
-                'question_answers' => $elementQuestionAnswersData,
+            $questionData = [
+                'question_id' => $questionId,
+                'question_title' => $question->getTitle(),
+                'question_suite' => $question->getQuestionSuite(),
+                'question_sequence' => $question->getSequence(),
+                'is_reflection' => $question->getIsReflection(),
+                'reflection_prompt' => $question->getReflectionPrompt(),
+                'element' => $question->getElement(),
+                'max_score' => $questionMaxScore,
+                'is_answered' => $answer !== null,
+                'answer_id' => $answer?->getId(),
+                'answer_value' => null,
+                'answer_text' => null,
+                'answer_option_id' => null,
+                'text_answer' => $answer?->getTextAnswer(),
+                'numeric_value' => $answer?->getNumericValue(),
             ];
+
+            if ($answer && $answer->getAssessmentAnswerOption()) {
+                $answerOption = $answer->getAssessmentAnswerOption();
+                $questionData['answer_value'] = $answerOption->getValue();
+                $questionData['answer_text'] = $answerOption->getAnswer();
+                $questionData['answer_option_id'] = $answerOption->getId();
+                $questionData['answer_explanation'] = $answerOption->getExplanation();
+                $questionData['option_number'] = $answerOption->getOptionNumber();
+
+                $elementTotalScore += $answerOption->getValue();
+                $totalScore += $answerOption->getValue();
+                $elementAnsweredQuestions++;
+            }
+
+            $elementQuestionAnswersData[] = $questionData;
+            $questionAnswersData[] = $questionData;
         }
 
-        usort($questionAnswersData, function($a, $b) {
-            return $a['question_sequence'] <=> $b['question_sequence'];
-        });
+        $elementCompletionPercentage = count($elementQuestions) > 0
+            ? round(($elementAnsweredQuestions / count($elementQuestions)) * 100, 2)
+            : 0;
 
-        $answeredQuestions = count($answersByQuestion);
-        $completionPercentage = $totalQuestions > 0 ? round(($answeredQuestions / $totalQuestions) * 100, 2) : 0;
-        // Normalize 1-5 scale to 0-100% scale for overall score
-        $normalizedTotalScore = $answeredQuestions > 0 ? ($totalScore - $answeredQuestions) : 0;
-        $normalizedTotalMaxScore = $answeredQuestions > 0 ? ($maxScore - $answeredQuestions) : 0;
-        $scorePercentage = $normalizedTotalMaxScore > 0 ? round(($normalizedTotalScore / $normalizedTotalMaxScore) * 100, 2) : 0;
+        $normalizedElementScore = $elementAnsweredQuestions > 0
+            ? ($elementTotalScore - $elementAnsweredQuestions)
+            : 0;
 
-        return [
-            'total_questions' => $totalQuestions,
-            'answered_questions' => $answeredQuestions,
-            'completion_percentage' => min($completionPercentage, 100), // Cap at 100%
+        $normalizedElementMaxScore = $elementAnsweredQuestions > 0
+            ? ($elementMaxScore - $elementAnsweredQuestions)
+            : 0;
+
+        $elementScorePercentage = $normalizedElementMaxScore > 0
+            ? round(($normalizedElementScore / $normalizedElementMaxScore) * 100, 2)
+            : 0;
+
+        $elementScores[$element] = [
+            'element' => $element,
+            'total_questions' => count($elementQuestions),
+            'answered_questions' => $elementAnsweredQuestions,
+            'completion_percentage' => min($elementCompletionPercentage, 100),
             'scores' => [
-                'element' => $assessmentElement,
-                'total_score' => $totalScore,
-                'max_score' => $maxScore,
-                'percentage' => $scorePercentage,
+                'total_score' => $elementTotalScore,
+                'max_score' => $elementMaxScore,
+                'percentage' => $elementScorePercentage,
             ],
-            'question_answers' => $questionAnswersData,
-            'element_scores' => $elementScores,
+            'question_answers' => $elementQuestionAnswersData,
         ];
     }
+
+    usort($questionAnswersData, fn($a, $b) =>
+        $a['question_sequence'] <=> $b['question_sequence']
+    );
+
+    $answeredQuestions = count($answersByQuestion);
+    $completionPercentage = $totalQuestions > 0
+        ? round(($answeredQuestions / $totalQuestions) * 100, 2)
+        : 0;
+
+    $normalizedTotalScore = $answeredQuestions > 0
+        ? ($totalScore - $answeredQuestions)
+        : 0;
+
+    $normalizedTotalMaxScore = $answeredQuestions > 0
+        ? ($maxScore - $answeredQuestions)
+        : 0;
+
+    $scorePercentage = $normalizedTotalMaxScore > 0
+        ? round(($normalizedTotalScore / $normalizedTotalMaxScore) * 100, 2)
+        : 0;
+
+    return [
+        'total_questions' => $totalQuestions,
+        'answered_questions' => $answeredQuestions,
+        'completion_percentage' => min($completionPercentage, 100),
+        'scores' => [
+            'element' => $assessmentElement,
+            'total_score' => $totalScore,
+            'max_score' => $maxScore,
+            'percentage' => $scorePercentage,
+        ],
+        'question_answers' => $questionAnswersData,
+        'element_scores' => $elementScores,
+    ];
+}
 
     private function generateInsights(AssessmentInstance $instance, array $answersByQuestion, array $questions): array
     {
