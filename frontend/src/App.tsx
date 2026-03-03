@@ -9,7 +9,7 @@ function App() {
     <div className="app">
       <header className="app-header">
         <h1>Assessment Results System</h1>
-        <p>Technical Interview Task</p>
+        <p>Technical Interview Task - Dawood</p>
       </header>
 
       <main className="app-main">
