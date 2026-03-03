@@ -56,7 +56,7 @@ class AssessmentService
         return $results;
     }
 
-    public function getProgressAndScore(AssessmentInstance $instance): array
+   public function getProgressAndScore(AssessmentInstance $instance): array
 {
     if (!$instance->getId()) {
         throw new \InvalidArgumentException('Invalid AssessmentInstance provided.');
@@ -101,7 +101,7 @@ class AssessmentService
     }
 
     $totalScore = 0;
-    $maxScore = 0; // Now counts only answered questions max
+    $maxScore = 0;
     $questionAnswersData = [];
     $elementScores = [];
 
@@ -176,7 +176,7 @@ class AssessmentService
                     );
                 }
 
-                $value = $answerOption->getValue();
+                $value = (float) $answerOption->getValue();
 
                 $questionData['answer_value'] = $value;
                 $questionData['answer_text'] = $answerOption->getAnswer();
@@ -187,7 +187,6 @@ class AssessmentService
                 $elementTotalScore += $value;
                 $totalScore += $value;
 
-                // ✅ Only count max score if question is answered
                 $elementMaxScore += $questionMaxScore;
                 $maxScore += $questionMaxScore;
 
@@ -202,17 +201,18 @@ class AssessmentService
             ? round(($elementAnsweredQuestions / count($elementQuestions)) * 100, 2)
             : 0;
 
-        $normalizedElementScore = $elementAnsweredQuestions > 0
-            ? ($elementTotalScore - $elementAnsweredQuestions)
-            : 0;
+        $normalizedElementScore = max(0, $elementTotalScore - $elementAnsweredQuestions);
+        $normalizedElementMaxScore = max(0, $elementMaxScore - $elementAnsweredQuestions);
 
-        $normalizedElementMaxScore = $elementAnsweredQuestions > 0
-            ? ($elementMaxScore - $elementAnsweredQuestions)
-            : 0;
+        $elementScorePercentage = 0;
+        if ($normalizedElementMaxScore > 0) {
+            $elementScorePercentage = round(
+                ($normalizedElementScore / $normalizedElementMaxScore) * 100,
+                2
+            );
+        }
 
-        $elementScorePercentage = $normalizedElementMaxScore > 0
-            ? round(($normalizedElementScore / $normalizedElementMaxScore) * 100, 2)
-            : 0;
+        $elementScorePercentage = max(0, min(100, $elementScorePercentage));
 
         $elementScores[$element] = [
             'element' => $element,
@@ -238,17 +238,18 @@ class AssessmentService
         ? round(($answeredQuestions / $totalQuestions) * 100, 2)
         : 0;
 
-    $normalizedTotalScore = $answeredQuestions > 0
-        ? ($totalScore - $answeredQuestions)
-        : 0;
+    $normalizedTotalScore = max(0, $totalScore - $answeredQuestions);
+    $normalizedTotalMaxScore = max(0, $maxScore - $answeredQuestions);
 
-    $normalizedTotalMaxScore = $answeredQuestions > 0
-        ? ($maxScore - $answeredQuestions)
-        : 0;
+    $scorePercentage = 0;
+    if ($normalizedTotalMaxScore > 0) {
+        $scorePercentage = round(
+            ($normalizedTotalScore / $normalizedTotalMaxScore) * 100,
+            2
+        );
+    }
 
-    $scorePercentage = $normalizedTotalMaxScore > 0
-        ? round(($normalizedTotalScore / $normalizedTotalMaxScore) * 100, 2)
-        : 0;
+    $scorePercentage = max(0, min(100, $scorePercentage));
 
     return [
         'total_questions' => $totalQuestions,
