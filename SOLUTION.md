@@ -1,5 +1,8 @@
-Overview:
+Muhammad Dawood Tahir
+Full Stack Developer 
+Time spent 2.5 hours including setting up locally the code.
 
+Overview:
 For this task, I first reviewed how the scoring logic works in the
 existing system. After understanding the normalization approach, I
 implemented a POST endpoint to allow submitting answers for an
@@ -7,7 +10,6 @@ assessment instance, making sure validation and domain integrity were
 properly handled.
 
 Scoring Algorithm – How It Works:
-
 The scoring is handled inside AssessmentService::getProgressAndScore().
 
 Each Likert question has numeric values (for example, 1 to 5). When a
@@ -27,12 +29,10 @@ Additional safeguards were added to: - Prevent division by zero - Ensure
 percentages stay between 0 and 100 - Ensure only answered questions
 affect max score
 
-Answer Submission – Implementation Approach
-
+Answer Submission – Implementation Approach:
 Endpoint: POST /api/assessment/answers
 
 Controller Flow:
-
 1.  Parse and validate the JSON body.
 2.  Ensure instance_id and question_id are provided.
 3.  Verify the assessment instance exists.
@@ -46,11 +46,10 @@ Controller Flow:
 9.  Persist using Doctrine.
 10. Return 201 Created on success.
 
-Proper HTTP status codes are returned: - 400 for validation errors - 404
-for missing entities - 500 for unexpected database/server errors
+Proper HTTP status codes are returned:
+400 for validation errors, 404 for missing entities, 500 for unexpected database/server errors
 
-Testing
-
+Testing:
 Submitted an answer using:
 
 curl -X POST http://localhost:8002/api/assessment/answers -H
@@ -93,5 +92,9 @@ The API now:
 4. Returns proper HTTP responses
 5. Updates assessment results dynamically after submission
 
-The implementation follows clean structure, defensive programming
-practices, and aligns with the existing domain model.
+Future:
+Automate the process.
+Better understanding.
+Try to make more easier.
+Discussion with stakeholders.
+having experience in such systems managing grade books. 
