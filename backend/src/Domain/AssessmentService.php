@@ -56,7 +56,7 @@ class AssessmentService
         return $results;
     }
 
-  public function getProgressAndScore(AssessmentInstance $instance): array
+    public function getProgressAndScore(AssessmentInstance $instance): array
 {
     if (!$instance->getId()) {
         throw new \InvalidArgumentException('Invalid AssessmentInstance provided.');
@@ -72,7 +72,17 @@ class AssessmentService
         throw new \RuntimeException('Session has no assessment assigned.');
     }
 
-    $answers = $this->assessmentRepository->findAllAssessmentInstanceAnswers($instance);
+    try {
+        $answers = $this->assessmentRepository
+            ->findAllAssessmentInstanceAnswers($instance);
+    } catch (\Throwable $e) {
+        throw new \RuntimeException(
+            'Failed to fetch assessment instance answers.',
+            0,
+            $e
+        );
+    }
+
     $questions = $assessment->getQuestions()->toArray();
     $assessmentElement = $assessment->getElement();
 
@@ -114,11 +124,24 @@ class AssessmentService
             $questionId = $question->getId();
             $answer = $answersByQuestion[$questionId] ?? null;
 
-            $options = $this->assessmentRepository->findAssessmentAnswerOptionsByQuestion($question);
+            try {
+                $options = $this->assessmentRepository
+                    ->findAssessmentAnswerOptionsByQuestion($question);
+            } catch (\Throwable $e) {
+                throw new \RuntimeException(
+                    "Failed to fetch answer options for question {$questionId}.",
+                    0,
+                    $e
+                );
+            }
+
             $questionMaxScore = 0;
 
             if (!empty($options)) {
-                $questionMaxScore = max(array_map(fn($option) => $option->getValue(), $options));
+                $questionMaxScore = max(
+                    array_map(fn($option) => $option->getValue(), $options)
+                );
+
                 $elementMaxScore += $questionMaxScore;
                 $maxScore += $questionMaxScore;
             }
@@ -143,6 +166,7 @@ class AssessmentService
 
             if ($answer && $answer->getAssessmentAnswerOption()) {
                 $answerOption = $answer->getAssessmentAnswerOption();
+
                 $questionData['answer_value'] = $answerOption->getValue();
                 $questionData['answer_text'] = $answerOption->getAnswer();
                 $questionData['answer_option_id'] = $answerOption->getId();
@@ -193,6 +217,7 @@ class AssessmentService
     );
 
     $answeredQuestions = count($answersByQuestion);
+
     $completionPercentage = $totalQuestions > 0
         ? round(($answeredQuestions / $totalQuestions) * 100, 2)
         : 0;
