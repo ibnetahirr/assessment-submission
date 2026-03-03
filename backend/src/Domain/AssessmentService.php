@@ -101,7 +101,7 @@ class AssessmentService
     }
 
     $totalScore = 0;
-    $maxScore = 0;
+    $maxScore = 0; // Now counts only answered questions max
     $questionAnswersData = [];
     $elementScores = [];
 
@@ -137,15 +137,8 @@ class AssessmentService
             $questionMaxScore = 0;
 
             if (!empty($options)) {
-                $values = array_map(
-                    fn($option) => $option->getValue(),
-                    $options
-                );
-
-                $numericValues = array_filter(
-                    $values,
-                    fn($value) => is_numeric($value)
-                );
+                $values = array_map(fn($option) => $option->getValue(), $options);
+                $numericValues = array_filter($values, fn($v) => is_numeric($v));
 
                 if (empty($numericValues)) {
                     throw new \RuntimeException(
@@ -154,9 +147,6 @@ class AssessmentService
                 }
 
                 $questionMaxScore = max($numericValues);
-
-                $elementMaxScore += $questionMaxScore;
-                $maxScore += $questionMaxScore;
             }
 
             $questionData = [
@@ -186,14 +176,21 @@ class AssessmentService
                     );
                 }
 
-                $questionData['answer_value'] = $answerOption->getValue();
+                $value = $answerOption->getValue();
+
+                $questionData['answer_value'] = $value;
                 $questionData['answer_text'] = $answerOption->getAnswer();
                 $questionData['answer_option_id'] = $answerOption->getId();
                 $questionData['answer_explanation'] = $answerOption->getExplanation();
                 $questionData['option_number'] = $answerOption->getOptionNumber();
 
-                $elementTotalScore += $answerOption->getValue();
-                $totalScore += $answerOption->getValue();
+                $elementTotalScore += $value;
+                $totalScore += $value;
+
+                // ✅ Only count max score if question is answered
+                $elementMaxScore += $questionMaxScore;
+                $maxScore += $questionMaxScore;
+
                 $elementAnsweredQuestions++;
             }
 
