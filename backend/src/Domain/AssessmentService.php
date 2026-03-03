@@ -85,7 +85,6 @@ class AssessmentService
 
     $questions = $assessment->getQuestions()->toArray();
     $assessmentElement = $assessment->getElement();
-
     $totalQuestions = count($questions);
 
     $answersByQuestion = [];
@@ -138,9 +137,23 @@ class AssessmentService
             $questionMaxScore = 0;
 
             if (!empty($options)) {
-                $questionMaxScore = max(
-                    array_map(fn($option) => $option->getValue(), $options)
+                $values = array_map(
+                    fn($option) => $option->getValue(),
+                    $options
                 );
+
+                $numericValues = array_filter(
+                    $values,
+                    fn($value) => is_numeric($value)
+                );
+
+                if (empty($numericValues)) {
+                    throw new \RuntimeException(
+                        "Invalid or missing numeric option values for question {$questionId}."
+                    );
+                }
+
+                $questionMaxScore = max($numericValues);
 
                 $elementMaxScore += $questionMaxScore;
                 $maxScore += $questionMaxScore;
@@ -166,6 +179,12 @@ class AssessmentService
 
             if ($answer && $answer->getAssessmentAnswerOption()) {
                 $answerOption = $answer->getAssessmentAnswerOption();
+
+                if (!is_numeric($answerOption->getValue())) {
+                    throw new \RuntimeException(
+                        "Invalid numeric value for selected answer option in question {$questionId}."
+                    );
+                }
 
                 $questionData['answer_value'] = $answerOption->getValue();
                 $questionData['answer_text'] = $answerOption->getAnswer();
