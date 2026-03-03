@@ -1,0 +1,222 @@
+.assessment-results {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.results-header {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.results-header h2 {
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+.instance-id {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+  font-family: monospace;
+}
+
+.card {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card h3 {
+  color: #2c3e50;
+  margin-bottom: 1.5rem;
+  font-size: 1.3rem;
+}
+
+/* Progress Card */
+.progress-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.progress-circle {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin-bottom: 1rem;
+}
+
+.progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.progress-percentage {
+  display: block;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #3498db;
+}
+
+.progress-label {
+  display: block;
+  font-size: 0.9rem;
+  color: #7f8c8d;
+}
+
+.progress-details {
+  text-align: center;
+  color: #7f8c8d;
+}
+
+/* Score Card */
+.score-card {
+  text-align: center;
+}
+
+.score-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.score-percentage {
+  font-size: 4rem;
+  font-weight: 700;
+}
+
+.score-details p {
+  margin: 0.25rem 0;
+  color: #7f8c8d;
+}
+
+.score-note {
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+/* Element Scores */
+.element-scores {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.element-score {
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.element-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.element-name {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.element-percentage {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.element-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.element-progress-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.element-details {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: #7f8c8d;
+}
+
+/* Insights */
+.insights {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.insight {
+  padding: 1rem;
+  border-radius: 6px;
+  border-left: 4px solid;
+}
+
+.insight.positive {
+  background: #d5f4e6;
+  border-color: #27ae60;
+}
+
+.insight.negative {
+  background: #fadbd8;
+  border-color: #e74c3c;
+}
+
+.insight-type {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+  color: #2c3e50;
+}
+
+.insight-message {
+  margin: 0;
+  color: #2c3e50;
+}
+
+/* Loading and Error States */
+.loading, .error, .empty {
+  text-align: center;
+  padding: 3rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.error {
+  color: #e74c3c;
+}
+
+.empty {
+  color: #7f8c8d;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .element-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .element-details {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+}

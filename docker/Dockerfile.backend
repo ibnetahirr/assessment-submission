@@ -1,0 +1,32 @@
+FROM php:8.2-cli-alpine
+
+# Install dependencies
+RUN apk add --no-cache \
+    postgresql-dev \
+    $PHPIZE_DEPS \
+    && docker-php-ext-install pdo pdo_pgsql
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+WORKDIR /app
+
+# Copy composer files
+COPY composer.json composer.lock* ./
+
+# Install PHP dependencies
+RUN composer install --no-scripts --no-autoloader --prefer-dist
+
+# Copy application files
+COPY . ./
+
+# Generate autoloader
+RUN composer dump-autoload --optimize
+
+# Create cache and log directories with proper permissions
+RUN mkdir -p var/cache var/log && \
+    chmod -R 777 var
+
+EXPOSE 8000
+
+CMD ["php", "-S", "0.0.0.0:8000", "-t", "public"]

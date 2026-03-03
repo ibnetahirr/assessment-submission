@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Environment
+.env
+.env.local
+
+
+# Build outputs
+/backend/var/*
+!/backend/var/.gitkeep
+!/backend/var/cache/
+!/backend/var/log/
+/backend/var/cache/*
+!/backend/var/cache/.gitkeep
+/backend/var/log/*
+!/backend/var/log/.gitkeep
+/backend/public/bundles/
+/frontend/dist/
+/frontend/build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Database
+*.db
+*.sqlite
+
+# Docker
+.docker/
+
+# Composer
+composer.phar
+composer.lock
